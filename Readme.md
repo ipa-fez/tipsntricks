@@ -12,8 +12,6 @@ Use at least `-Wall -Wextra`. `-pedantic` complains about a lot of extra things 
 
 The `-c` in CatkinTools arguments tells catkin to continue on error.
 
-Note that you will have to do this for each build configuration (Debug, Release, etc)
-
 ## Enabling the clang-code model in QtCreator
 
 Make sure you're on the latest version and enable the plugin (Help->About Plugins...).
