@@ -1,5 +1,5 @@
 function rsource {
-	local ROS_ROOT="/opt/ros/kinetic/setup.bash"
+	local ROS_ROOT="/opt/ros/melodic/setup.bash"
 	local WS_ROOT="git"
 	local ws=$(pwd | grep -o -e "/home/${USER}/${WS_ROOT}/[^\/]\+")
 	if [ -z "$ws" ]; then
