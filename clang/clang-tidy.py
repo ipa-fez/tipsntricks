@@ -72,7 +72,7 @@ def getConfig(candidates, verbose = False):
     return '-config={}'.format(config_yaml)
 
 def runClangTidy(filename, fix = False, dry_run = False):
-    cmd = ['clang-tidy-8']
+    cmd = ['clang-tidy-9']
     cd = getCompileDB(filename)
     if cd:
         cmd += ['-p={}'.format(cd)]
