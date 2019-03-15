@@ -1,6 +1,7 @@
 from __future__ import print_function
 import sys
 import os
+import pathlib2
 
 from catkin_tools.argument_parsing import add_context_args
 from catkin_tools.metadata import find_enclosing_workspace
@@ -31,8 +32,13 @@ def prepare_arguments(parser):
     pkg = parser.add_argument
     pkg('package', help="Package to run for")
     src = parser.add_argument
-    src('src_file', nargs='+', help="Source files to run for")
+    src('src_file', nargs='*', help="Source files to run for")
     return parser
+
+def findSrcFiles(path):
+    p = pathlib2.Path(path)
+    return map(lambda a : a.as_posix(), p.glob("src/**/*.cpp"))
+
 
 def main(opts):
     opts = sys.argv[1:] if opts is None else opts
@@ -60,12 +66,21 @@ def main(opts):
         print("No compile_commands.json in {}".format(build_space))
         sys.exit(3)
 
-    runClangTidy(clang_binary=opts.clang_tidy, pkg_root=ctx.source_space_abs + os.path.sep + pkg_path, package=opts.package, filenames=opts.src_file, cfg=None, compile_db=build_space, fix=opts.fix, dry_run = False)
+    pkg_root = ctx.source_space_abs + os.path.sep + pkg_path
+
+    if len(opts.src_file) == 0:
+        opts.src_file = findSrcFiles(pkg_root)
+
+    if len(opts.src_file) == 0:
+        print("No .cpp files found!")
+        sys.exit(4)
+
+    runClangTidy(clang_binary=opts.clang_tidy, pkg_root=pkg_root, package=opts.package, filenames=opts.src_file, cfg=None, compile_db=build_space, fix=opts.fix, dry_run = False)
     return 0
 
 description = dict(
         verb='tidy',
-        description='Runs clang-tidy on a file',
+        description='Runs clang-tidy on a file. Make sure you have enabled generation of compile_commands.json.',
         main=main,
         prepare_arguments=prepare_arguments,
         )
