@@ -8,7 +8,10 @@ Checks: >
   -objc*,
   -google-readability-braces-around-statements,
   -google-readability-todo,
-  -readability-uppercase-literal-suffix
+  -google-runtime-references,
+  -readability-uppercase-literal-suffix,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-type-vararg
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
@@ -31,4 +34,11 @@ CheckOptions:
     value:           '0.5;1.0;100.0;'
   - key:             readability-magic-numbers.IgnoredIntegerValues
     value:           '1;2;3;4;'
-
+  - { key: readability-identifier-naming.NamespaceCase,       value: lower_case }
+  - { key: readability-identifier-naming.ClassCase,           value: CamelCase  }
+  - { key: readability-identifier-naming.StructCase,          value: CamelCase  }
+  - { key: readability-identifier-naming.FunctionCase,        value: camelBack}
+  - { key: readability-identifier-naming.VariableCase,        value: lower_case }
+  - { key: readability-identifier-naming.ClassMemberSuffix, value: _         }
+  - { key: readability-identifier-naming.GlobalConstantCase,  value: UPPER_CASE }
+  - { key: readability-identifier-naming.GlobalVariablePrefix,  value: g_ }
