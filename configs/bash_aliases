@@ -128,7 +128,7 @@ alias cddev='[ ! -z $ROS_WORKSPACE ] && cd $ROS_WORKSPACE/devel/.private'
 function rcd {
   local pkgpath
   if [ $ROS_VERSION = 2 ]; then
-    pkgpath=$(colcon list --base-path "${ROS_WORKSPACE}" 2>/dev/null | fzf -q "${1}" | cut -f 2) && cd "${pkgpath}" || return
+    pkgpath=$(colcon --log-base /dev/null list --base-path "${ROS_WORKSPACE}" 2>/dev/null | fzf -q "${1}" | cut -f 2) && cd "${pkgpath}" || return
   else
     pkgpath=$(rospack list 2>/dev/null | fzf -q "${1}" | cut -d" " -f 2) && cd "${pkgpath}" || return
   fi
@@ -139,7 +139,7 @@ function rcd {
 function re {
   local pkg
   if [ $ROS_VERSION = 2 ]; then
-    pkg=$(colcon list --base-path "${ROS_WORKSPACE}" 2>/dev/null | fzf -q "${1}" | cut -f 2) || return
+    pkg=$(colcon --log-base /dev/null list --base-path "${ROS_WORKSPACE}" 2>/dev/null | fzf -q "${1}" | cut -f 2) || return
   else
     pkg=$(rospack 2>/dev/null list | cut -d" " -f 1 | fzf --prompt="package: ") || return
     pkg=$(rospack 2>/dev/null find "${pkg}") || return
