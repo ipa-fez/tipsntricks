@@ -1,7 +1,7 @@
 from __future__ import print_function
 import sys
 import os
-import pathlib2
+import pathlib
 
 from catkin_tools.argument_parsing import add_context_args
 from catkin_tools.metadata import find_enclosing_workspace
@@ -29,7 +29,7 @@ def runClangTidy(clang_binary, pkg_root, package, filenames, cfg, compile_db, fi
 def prepare_arguments(parser):
     add_context_args(parser)
     clang_binary = parser.add_argument
-    clang_binary('-c', '--clang-tidy', nargs="?", default="clang-tidy-9", help="Name of clang-tidy binary, e.g. 'clang-tidy-9'")
+    clang_binary('-c', '--clang-tidy', nargs="?", default="clang-tidy-10", help="Name of clang-tidy binary, e.g. 'clang-tidy-9'")
     fix = parser.add_argument
     fix('-f', '--fix', action='store_true', default=False, help="Apply fixes")
     export = parser.add_argument
@@ -41,7 +41,7 @@ def prepare_arguments(parser):
     return parser
 
 def findSrcFiles(path):
-    p = pathlib2.Path(path)
+    p = pathlib.Path(path)
     return map(lambda a : a.as_posix(), p.glob("src/**/*.cpp"))
 
 
@@ -73,10 +73,10 @@ def main(opts):
 
     pkg_root = ctx.source_space_abs + os.path.sep + pkg_path
 
-    if len(opts.src_file) == 0:
+    if not opts.src_file:
         opts.src_file = findSrcFiles(pkg_root)
 
-    if len(opts.src_file) == 0:
+    if not opts.src_file:
         print("No .cpp files found!")
         sys.exit(4)
 

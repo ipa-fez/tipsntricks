@@ -6,6 +6,8 @@ Checks: >
   -zircon*,
   -hicpp*,
   -objc*,
+  -llvmlibc*,
+  -llvm*
   -google-readability-braces-around-statements,
   -google-readability-todo,
   -google-runtime-references,
