@@ -312,3 +312,65 @@ function single_ros2test {
   popd > /dev/null
 }
 
+function single_ros2test_gdb {
+  if [ $# -lt 1 ]; then
+    echo "Need a test name"
+    return;
+  fi
+  [ -z "${ROS_WORKSPACE}" ] && echo "ROS_WORKSPACE unset" && return
+	local test_executable
+	test_executable=$(find ${ROS_WORKSPACE}/build -type f -iname "${1}") || return
+	gdb ${test_executable}
+}
+
+# Takes filename to unit test and rebuilds it without dependencies + runs it
+# Any extra arguments will be used as prefix for the test
+function single_ros2test_from_file_fast {
+	test_executable=$1
+	shift
+	test_name=$(basename "${test_executable}")
+	build_dir=$(dirname "$test_executable")
+	pkg_name=$(basename "$build_dir")
+	colb --packages-select "${pkg_name}" --cmake-target "${test_name}" && $@ ${test_executable}
+}
+
+# Takes filename to unit test and rebuilds + runs it
+# Any extra arguments will be used as prefix for the test
+function single_ros2test_from_file {
+	test_executable=$1
+	shift
+	test_name=$(basename "${test_executable}")
+	build_dir=$(dirname "$test_executable")
+	pkg_name=$(basename "$build_dir")
+	colb --packages-up-to "${pkg_name}" > /dev/null && $@ ${test_executable}
+}
+
+function single_ros2test_from_source_file {
+	exe=$(basename $1 .cpp)
+	test_executable=$(find ${ROS_WORKSPACE}/build -type f -iname "${exe}") || return
+	single_ros2test_from_file_fast "$test_executable"
+}
+
+function r2t {
+  [ -z "${ROS_WORKSPACE}" ] && echo "ROS_WORKSPACE unset" && return
+	local test_executable
+	test_executable=$(fd -t x '_test$' "${ROS_WORKSPACE}/build" | fzf) || return
+	single_ros2test_from_file $test_executable $@
+}
+
+function release_ros2_pkg {
+	if [ $# -lt 1 ]; then
+		echo "Need a pkg name"
+		return
+	fi
+	pushd "${ROS_WORKSPACE}" || (echo "ROS_WORKSPACE unset" && return)
+
+	tmpdir=$(mktemp -d)
+	colcon --log-base "${tmpdir}/log" build --executor parallel --merge-install --install-base "${tmpdir}/install" --build-base "${tmpdir}/build" --ament-cmake-args -DCMAKE_BUILD_TYPE=Release --packages-up-to $@
+	pushd "${tmpdir}"
+	echo -e "- Install ROS ${ROS_DISTRO}\n- Install dependencies \`rosdep install --ignore-src --from-path install\`\n- Source the workspace \`source install/setup.bash\`" > SETUP.md
+	tar -czf "/tmp/${1}_$(date --iso-8601).tar.gz" SETUP.md install
+	popd
+	popd
+}
+
