@@ -3,6 +3,7 @@ Checks: >
   -abseil*,
   -fuchsia*,
   -android*,
+  -altera*
   -zircon*,
   -hicpp*,
   -objc*,
@@ -50,3 +51,5 @@ CheckOptions:
   - { key: readability-identifier-naming.ClassMemberSuffix, value: _         }
   - { key: readability-identifier-naming.GlobalConstantCase,  value: UPPER_CASE }
   - { key: readability-identifier-naming.GlobalVariablePrefix,  value: g_ }
+  - { key: readability-function-cognitive-complexity.IgnoreMacros,  value: true }
+  - { key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic, value: true }
