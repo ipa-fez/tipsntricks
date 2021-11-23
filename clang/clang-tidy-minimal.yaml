@@ -3,7 +3,7 @@ Checks: >
   -abseil*,
   -fuchsia*,
   -android*,
-  -altera*
+  -altera*,
   -zircon*,
   -hicpp*,
   -objc*,
