@@ -119,6 +119,7 @@ function cdws {
   fi
 }
 
+alias is_ros_workspace='[ -n "${ROS_WORKSPACE}" ] && [ -d "${ROS_WORKSPACE}" ] || (echo "Not a ROS workspace" && false)'
 alias cdbase='cd $ROS_WORKSPACE'
 alias cds='[ ! -z $ROS_WORKSPACE ] && cd $ROS_WORKSPACE/src'
 alias cdbuild='[ ! -z $ROS_WORKSPACE ] && cd $ROS_WORKSPACE/build'
@@ -285,31 +286,29 @@ cob4-20 10.4.20.11:11311 wifi"
 ###############
 # ROS2 Helpers
 ###############
-alias colb='[ -n "${ROS_WORKSPACE}" ] && pushd ${ROS_WORKSPACE} && colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_CXX_FLAGS=-ggdb --symlink-install; popd'
-alias colbthis='[ -n "${ROS_WORKSPACE}" ] && colcon --log-base ${ROS_WORKSPACE}/log build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1 --symlink-install --build-base ${ROS_WORKSPACE}/build --install-base ${ROS_WORKSPACE}/install'
-alias colt='[ -n "${ROS_WORKSPACE}" ] && pushd ${ROS_WORKSPACE} && colcon test; popd'
-alias coltr='[ -n "${ROS_WORKSPACE}" ] && pushd ${ROS_WORKSPACE} && colcon test-result --verbose; popd'
-alias colrelbuild='[ -n "${ROS_WORKSPACE}" ] && pushd ${ROS_WORKSPACE} && colcon build --symlink-install --cmake-clean-first --cmake-force-configure --cmake-args -DCMAKE_BUILD_TYPE=Release  -DSANITIZE=OFF -DBUILD_TESTING=OFF; popd'
+alias colb='is_ros_workspace && colcon --log-base "${ROS_WORKSPACE}/log" build --base-paths "${ROS_WORKSPACE}" --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_CXX_FLAGS=-ggdb --symlink-install --build-base "${ROS_WORKSPACE}/build" --install-base ${ROS_WORKSPACE}/install'
+alias colt='is_ros_workspace && colcon --log-base "${ROS_WORKSPACE}/log" test --base-paths "${ROS_WORKSPACE}" --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_CXX_FLAGS=-ggdb --symlink-install --build-base "${ROS_WORKSPACE}/build" --install-base "${ROS_WORKSPACE}/install"'
+alias colbthis='is_ros_workspace && colcon --log-base "${ROS_WORKSPACE}/log" build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_CXX_FLAGS=-ggdb --symlink-install --build-base "${ROS_WORKSPACE}/build" --install-base "${ROS_WORKSPACE}/install"'
+alias coltr='is_ros_workspace && colcon --log-base "${ROS_WORKSPACE}/log" test-result --test-result-base "${ROS_WORKSPACE}/build" --verbose'
+alias colrelbuild='is_ros_workspace && colcon --log-base "${ROS_WORKSPACE}/log" build --base-paths "${ROS_WORKSPACE}" --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Release -DSANITIZE=OFF -DBUILD_TESTING=OFF -DCMAKE_CXX_FLAGS=-ggdb --symlink-install --build-base "${ROS_WORKSPACE}/build" --install-base "${ROS_WORKSPACE}/install"'
 
 
 function single_ros2test {
-  if [ $# -lt 1 ]; then
-    echo "Need a test name"
+  if [ $# -lt 2 ]; then
+    echo "Need a package name and test name"
     return;
   fi
-  [ -z "${ROS_WORKSPACE}" ] && echo "ROS_WORKSPACE unset" && return
-  pushd "${ROS_WORKSPACE}"
+	is_ros_workspace || return
   function rostest_in_base {
     # suppress cmake stuff
-    colcon build --cmake-target-skip-unavailable --cmake-target "${1}" > /dev/null || return
+    colb --packages-up-to "${1}" --symlink-install --cmake-target-skip-unavailable --cmake-target "${2}" > /dev/null || return
     local test_executable
-    test_executable=$(find build -type f -iname "${1}") || return
-    echo ${test_executable}
+    test_executable=$(find "${ROS_WORKSPACE}/build/${1}" -type f -iname "${2}") || return
+    # echo ${test_executable}
     [ -x "${test_executable}" ] || return 1
-    ./${test_executable}
+    ${test_executable}
   }
-  rostest_in_base "${1}"
-  popd > /dev/null
+  rostest_in_base "${1}" "${2}"
 }
 
 function single_ros2test_gdb {
@@ -317,7 +316,7 @@ function single_ros2test_gdb {
     echo "Need a test name"
     return;
   fi
-  [ -z "${ROS_WORKSPACE}" ] && echo "ROS_WORKSPACE unset" && return
+	is_ros_workspace || return
 	local test_executable
 	test_executable=$(find ${ROS_WORKSPACE}/build -type f -iname "${1}") || return
 	gdb ${test_executable}
@@ -329,8 +328,10 @@ function single_ros2test_from_file_fast {
 	test_executable=$1
 	shift
 	test_name=$(basename "${test_executable}")
-	build_dir=$(dirname "$test_executable")
+	# Account for /test subfolder
+	build_dir=$(dirname "$test_executable" | sed -e 's#/test$##')
 	pkg_name=$(basename "$build_dir")
+	#echo "Test executable: '${test_executable}', build dir: '${build_dir}', pkg name: '${pkg_name}'"
 	colb --packages-select "${pkg_name}" --cmake-target "${test_name}" && $@ ${test_executable}
 }
 
@@ -340,22 +341,24 @@ function single_ros2test_from_file {
 	test_executable=$1
 	shift
 	test_name=$(basename "${test_executable}")
-	build_dir=$(dirname "$test_executable")
+	# Account for /test subfolder
+	build_dir=$(dirname "$test_executable" | sed -e 's#/test$##')
 	pkg_name=$(basename "$build_dir")
 	colb --packages-up-to "${pkg_name}" > /dev/null && $@ ${test_executable}
 }
 
 function single_ros2test_from_source_file {
+	is_ros_workspace || return
 	exe=$(basename $1 .cpp)
 	test_executable=$(find ${ROS_WORKSPACE}/build -type f -iname "${exe}") || return
 	single_ros2test_from_file_fast "$test_executable"
 }
 
 function r2t {
-  [ -z "${ROS_WORKSPACE}" ] && echo "ROS_WORKSPACE unset" && return
+	is_ros_workspace || return
 	local test_executable
 	test_executable=$(fd -t x '_test$' "${ROS_WORKSPACE}/build" | fzf) || return
-	single_ros2test_from_file $test_executable $@
+	single_ros2test_from_file "$test_executable" $@
 }
 
 function release_ros2_pkg {
@@ -363,14 +366,11 @@ function release_ros2_pkg {
 		echo "Need a pkg name"
 		return
 	fi
-	pushd "${ROS_WORKSPACE}" || (echo "ROS_WORKSPACE unset" && return)
+	is_ros_workspace || return
 
 	tmpdir=$(mktemp -d)
-	colcon --log-base "${tmpdir}/log" build --executor parallel --merge-install --install-base "${tmpdir}/install" --build-base "${tmpdir}/build" --ament-cmake-args -DCMAKE_BUILD_TYPE=Release --packages-up-to $@
-	pushd "${tmpdir}"
-	echo -e "- Install ROS ${ROS_DISTRO}\n- Install dependencies \`rosdep install --ignore-src --from-path install\`\n- Source the workspace \`source install/setup.bash\`" > SETUP.md
-	tar -czf "/tmp/${1}_$(date --iso-8601).tar.gz" SETUP.md install
-	popd
-	popd
+	colcon --log-base "${tmpdir}/log" build --base-paths "${ROS_WORKSPACE}" --executor parallel --merge-install --install-base "${tmpdir}/install" --build-base "${tmpdir}/build" --ament-cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF --packages-up-to $@
+	echo -e "- Install ROS ${ROS_DISTRO}\n- Install dependencies \`rosdep install --ignore-src --from-path install/share\`\n- Source the workspace \`source install/setup.bash\`" > "${tmpdir}/SETUP.md"
+	tar -czf "/tmp/${1}_$(date --iso-8601).tar.gz" -C "${tmpdir}" SETUP.md install
 }
 
